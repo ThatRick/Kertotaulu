@@ -1,6 +1,6 @@
 const colors = {
     disabled: '#DDD',
-    enabled: '#2F2',
+    enabled: '#2A2',
     unselected: '#EEE',
     selected: '#AAF',
     correct: '#080',

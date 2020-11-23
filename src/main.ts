@@ -1,12 +1,12 @@
 
 const colors = {
-    disabled: '#DDD',
-    enabled: '#2F2',
+    disabled:   '#DDD',
+    enabled:    '#2A2',
     unselected: '#EEE',
-    selected: '#AAF',
-    correct: '#080',
-    incorrect: '#800',
-    default: '#000'
+    selected:   '#AAF',
+    correct:    '#080',
+    incorrect:  '#800',
+    default:    '#000'
 }
 
 const availableTables = [2,3,4,5,6,7,8,9]

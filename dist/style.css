@@ -2,29 +2,6 @@ body {
     font-size: large;
 }
 
-#question {
-    font-size: x-large;
-}
-
-#answerInput {
-    font-size: x-large;
-    height: 40px;
-    line-height: 40px;
-    width: 4em;
-}
-
-#answerButton {
-    font-size: x-large;
-    height: 40px;
-    line-height: 40px;
-    text-align: center;
-    cursor: pointer;
-}
-
-#questionArea {
-    display: none;
-}
-
 #toggleButtons {
     width: 100%;
     display: flex; 
@@ -52,5 +29,28 @@ body {
     display: block;
     text-align: center;
     margin: 2px;
+    cursor: pointer;
+}
+
+#questionArea {
+    display: none;
+}
+
+#question {
+    font-size: x-large;
+}
+
+#answerInput {
+    font-size: x-large;
+    height: 40px;
+    line-height: 40px;
+    width: 4em;
+}
+
+#answerButton {
+    font-size: x-large;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
     cursor: pointer;
 }
