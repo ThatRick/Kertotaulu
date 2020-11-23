@@ -25,13 +25,13 @@ body {
     display: none;
 }
 
-.selectButtonArea {
+#toggleButtons {
     width: 100%;
     display: flex; 
     flex-direction: row;
 }
   
-.selectButton {
+#toggleButtons * {
     margin: 2px;
     font-size: large;
     display: block;
@@ -41,12 +41,10 @@ body {
     border: 1px solid black;
     user-select: none;
     cursor: pointer;
-    
-    /* remove your width and float and add the following */
     flex-grow: 1;
 }
 
-.startButton {
+#startButton {
     font-size: large;
     width: 100%;
     height: 30px;

@@ -11,62 +11,47 @@ const colors = {
 
 const availableTables = [2,3,4,5,6,7,8,9]
 
-window.onload = () => {
-    const selectedTables = new Set<number>()
-    const setupArea = document.getElementById('setupArea')
+window.onload = () =>
+{
+    const setupArea = document.getElementById('setupArea') as HTMLDivElement
+    const toggleButtonsArea = document.getElementById('toggleButtons') as HTMLDivElement
+    const startButton = document.getElementById('startButton') as HTMLButtonElement
     
-    if (!setupArea) {
-        throw new Error("HTML element 'setupArea' not found!")
+    if (!(setupArea && toggleButtonsArea && startButton)) {
+        throw new Error("HTML element not found!")
     }
 
-    // Select tables area
-    const selectTablesArea = document.createElement('div')
-    selectTablesArea.className = 'selectButtonArea'
-    setupArea.appendChild(selectTablesArea)
+    const selectedTables = new Set<number>()
 
-    // Make start button
-    const startButton = document.createElement('button')
-    startButton.className = 'startButton'
-    startButton.textContent = 'Aloita'
+    availableTables.forEach(num => {
+        toggleButtonsArea.appendChild(toggleButton(num.toString(), toggled => {
+            (toggled) ? selectedTables.add(num) :
+                        selectedTables.delete(num);
+            setStartButtonEnabled(selectedTables.size > 0)
+        }))
+    })
+
+    function setStartButtonEnabled(enabled: boolean) {
+        startButton.style.backgroundColor = enabled ? colors.enabled : colors.disabled;
+        startButton.onclick = enabled ? start : null;
+    }
 
     function start() {
         const numbers = Array.from(selectedTables.values())
-        disableStartButton()
+        setStartButtonEnabled(false)
         setupArea.style.display = 'none'
         new MultiplicationTablesQuestionnaire(numbers);
     }
-    function enableStartButton() {
-        startButton.style.backgroundColor = colors.enabled
-        startButton.onclick = start
-    }
-    function disableStartButton() {
-        startButton.style.backgroundColor = colors.disabled
-        startButton.onclick = null
-    }
-
-    // make toggle buttons
-    availableTables.forEach(num => {
-        selectTablesArea.appendChild(toggleButton(num.toString(), (toggled) => {
-            (toggled) ? selectedTables.add(num) :
-                        selectedTables.delete(num);
-            (selectedTables.size > 0) ? enableStartButton() : 
-                                        disableStartButton();
-        }))
-    })
-    setupArea.appendChild(startButton)
 }
-
 
 function toggleButton(titleText: string, callback: (boolean) => void): HTMLElement {
     const button = document.createElement('div')
     button.style.backgroundColor = colors.unselected
-    button.className = 'selectButton'
     button.textContent = titleText
     let toggled = false
     button.onclick = () => {
         toggled = !toggled
-        button.style.backgroundColor = (toggled) ?
-            colors.selected : colors.unselected
+        button.style.backgroundColor = (toggled) ? colors.selected : colors.unselected
         callback(toggled)
     }
     return button
@@ -76,7 +61,6 @@ interface IMultiplication {
     a: number,
     b: number
 }
-
 
 class MultiplicationTablesQuestionnaire
 {
@@ -93,7 +77,7 @@ class MultiplicationTablesQuestionnaire
     answerCount: number = 0
     failed: Set<IMultiplication> = new Set();
 
-    constructor(tables: number[])
+    constructor(selectedTables: number[])
     {
         this.questionArea = document.getElementById('questionArea') as HTMLDivElement
         this.infoPara = document.getElementById('info') as HTMLParagraphElement
@@ -106,14 +90,16 @@ class MultiplicationTablesQuestionnaire
             throw new Error("HTML Element not found!")
         }
 
-        tables.forEach(a => availableTables.forEach(b => this.questions.push((Math.random() > 0.5) ? {a, b} : {a: b, b: a})))
+        selectedTables.forEach(a =>
+            availableTables.forEach(b =>
+                this.questions.push((Math.random() > 0.5) ? {a, b} : {a: b, b: a})))
+        
         this.shuffleArray(this.questions)
         
-        this.questionArea.style.display = 'block'
-
+        this.showQuestion()
         this.enableAnswerHandling()
-
-        this.askQuestion()
+        
+        this.questionArea.style.display = 'block'
     }
 
     get currentQuestion() { return this.questions[this.currentIndex] }
@@ -123,7 +109,7 @@ class MultiplicationTablesQuestionnaire
             this.finish()
         } else {
             this.currentIndex++
-            this.askQuestion()
+            this.showQuestion()
         }
     }
 
@@ -134,8 +120,7 @@ class MultiplicationTablesQuestionnaire
         }
     }
 
-    askQuestion()
-    {
+    showQuestion() {
         this.infoPara.textContent = `laskutehtävä ${this.currentIndex+1}/${this.questions.length}:`
         
         const {a, b} = this.currentQuestion
@@ -143,7 +128,6 @@ class MultiplicationTablesQuestionnaire
         this.questionPara.style.color = colors.default
         
         this.answerInput.value = ''
-        this.answerInput.focus()
     }
 
     enableAnswerHandling() {
@@ -159,13 +143,14 @@ class MultiplicationTablesQuestionnaire
         const feedback = correctAnswer ? 'OIKEIN!' : 'VÄÄRIN'
         this.questionPara.textContent += ' ' + userAnswer.toString() + '  ' + feedback
         this.questionPara.style.color = correctAnswer ? colors.correct : colors.incorrect
+        this.answerCount++
+        
         setTimeout(() => {
-            this.answerCount++
             if (correctAnswer) {
                 this.nextQuestion()                 
             } else {
                 this.failed.add(this.currentQuestion);
-                this.askQuestion()
+                this.showQuestion()
             }
         }, 2000)
     }
@@ -173,8 +158,6 @@ class MultiplicationTablesQuestionnaire
     finish() {
         this.resultPara.textContent = `Sait oikein ${this.questions.length - this.failed.size}/${this.questions.length}. ${(this.failed.size == 0) ? 'Hienoa!': ''}`
     }
-
-    
 }
 
 
