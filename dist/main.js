@@ -7,7 +7,7 @@ const colors = {
     incorrect: '#800',
     default: '#000'
 };
-const availableTables = [2, 3, 4, 5, 6, 7, 8, 9];
+const availableTables = [2, 3, 4, 5, 6, 7, 8, 9, 10];
 window.onload = () => {
     const setupArea = document.getElementById('setupArea');
     const toggleButtonsArea = document.getElementById('toggleButtons');

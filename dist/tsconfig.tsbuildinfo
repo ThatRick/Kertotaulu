@@ -154,7 +154,7 @@
         "signature": "0c9ea8c2028047f39a3f66752682604f543c08be8806258c3d95c93e75a43255"
       },
       "../src/main.ts": {
-        "version": "c068377f3ffb235bc9181890a4149382af78125aef840401ee6abf11e6921002",
+        "version": "839c5dd9a6547b145fa7cf533abac0873abeaff450dbca55f71dbd0044986552",
         "signature": "c4f950c35dcc15e001c05e80964e4dce4c33c7059f3ca2e41967d645a19958f1"
       }
     },
@@ -175,7 +175,6 @@
     "referencedMap": {},
     "exportedModulesMap": {},
     "semanticDiagnosticsPerFile": [
-      "../src/main.ts",
       "../../../../../appdata/roaming/npm/node_modules/typescript/lib/lib.es5.d.ts",
       "../../../../../appdata/roaming/npm/node_modules/typescript/lib/lib.es2015.d.ts",
       "../../../../../appdata/roaming/npm/node_modules/typescript/lib/lib.es2016.d.ts",
@@ -213,7 +212,8 @@
       "../../../../../appdata/roaming/npm/node_modules/typescript/lib/lib.es2020.string.d.ts",
       "../../../../../appdata/roaming/npm/node_modules/typescript/lib/lib.es2020.symbol.wellknown.d.ts",
       "../../../../../appdata/roaming/npm/node_modules/typescript/lib/lib.esnext.intl.d.ts",
-      "../../../../../appdata/roaming/npm/node_modules/typescript/lib/lib.esnext.bigint.d.ts"
+      "../../../../../appdata/roaming/npm/node_modules/typescript/lib/lib.esnext.bigint.d.ts",
+      "../src/main.ts"
     ]
   },
   "version": "3.7.2"
