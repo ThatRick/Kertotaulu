@@ -54,3 +54,15 @@ body {
     text-align: center;
     cursor: pointer;
 }
+
+#reload {
+    font-size: large;
+    width: 100%;
+    height: 30px;
+    line-height: 30px;
+    display: block;
+    text-align: center;
+    margin: 2px;
+    cursor: pointer;
+    display: none
+}

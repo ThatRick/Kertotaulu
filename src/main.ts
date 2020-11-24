@@ -70,6 +70,7 @@ class MultiplicationTablesQuestionnaire
     answerInput: HTMLInputElement
     answerButton: HTMLButtonElement
     resultPara: HTMLParagraphElement
+    reloadButton: HTMLButtonElement
     
     questions: Array<IMultiplication> = []
     currentIndex: number = 0
@@ -85,6 +86,7 @@ class MultiplicationTablesQuestionnaire
         this.answerInput = document.getElementById('answerInput') as HTMLInputElement
         this.answerButton = document.getElementById('answerButton') as HTMLButtonElement
         this.resultPara = document.getElementById('result') as HTMLParagraphElement
+        this.reloadButton = document.getElementById('reload') as HTMLButtonElement
     
         if (!(this.infoPara && this.questionPara && this.resultPara && this.answerInput && this.answerButton && this.questionArea)) {
             throw new Error("HTML Element not found!")
@@ -157,6 +159,11 @@ class MultiplicationTablesQuestionnaire
 
     finish() {
         this.resultPara.textContent = `Sait oikein ${this.questions.length - this.failed.size}/${this.questions.length}. ${(this.failed.size == 0) ? 'Hienoa!': ''}`
+        this.reloadButton.style.display = 'block';
+        this.reloadButton.onclick = () => {
+            location.reload();
+            return false;
+        }
     }
 }
 

@@ -78,6 +78,7 @@ class MultiplicationTablesQuestionnaire {
         this.answerInput = document.getElementById('answerInput');
         this.answerButton = document.getElementById('answerButton');
         this.resultPara = document.getElementById('result');
+        this.reloadButton = document.getElementById('reload');
         if (!(this.infoPara && this.questionPara && this.resultPara && this.answerInput && this.answerButton && this.questionArea)) {
             throw new Error("HTML Element not found!");
         }
@@ -116,5 +117,10 @@ class MultiplicationTablesQuestionnaire {
     }
     finish() {
         this.resultPara.textContent = `Sait oikein ${this.questions.length - this.failed.size}/${this.questions.length}. ${(this.failed.size == 0) ? 'Hienoa!' : ''}`;
+        this.reloadButton.style.display = 'block';
+        this.reloadButton.onclick = () => {
+            location.reload();
+            return false;
+        };
     }
 }
