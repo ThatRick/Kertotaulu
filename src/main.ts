@@ -113,7 +113,7 @@ class MultiplicationTablesQuestionnaire
     get currentQuestion() { return this.questions[this.currentIndex] }
 
     updateTimerDisplay(value: number) {
-        this.timerSpan.textContent = (value / 1000).toFixed(1)
+        this.timerSpan.textContent = (value / 1000).toFixed(0)
     }
 
     nextQuestion() {
