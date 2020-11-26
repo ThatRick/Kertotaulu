@@ -65,11 +65,12 @@ interface IMultiplication {
 class MultiplicationTablesQuestionnaire
 {
     questionArea: HTMLDivElement
-    infoPara: HTMLParagraphElement
+    infoSpan: HTMLSpanElement
+    timerSpan: HTMLSpanElement
     questionPara: HTMLParagraphElement
     answerInput: HTMLInputElement
     answerButton: HTMLButtonElement
-    resultPara: HTMLParagraphElement
+    feedbackArea: HTMLDivElement
     reloadButton: HTMLButtonElement
     
     questions: Array<IMultiplication> = []
@@ -78,17 +79,22 @@ class MultiplicationTablesQuestionnaire
     answerCount: number = 0
     failed: Set<IMultiplication> = new Set();
 
-    constructor(selectedTables: number[])
+    totalAnsweringTime: number = 0;
+    currentQuestionStartTime: number = 0;
+    timerHook: number;
+
+    constructor(public selectedTables: number[])
     {
         this.questionArea = document.getElementById('questionArea') as HTMLDivElement
-        this.infoPara = document.getElementById('info') as HTMLParagraphElement
+        this.infoSpan = document.getElementById('info') as HTMLSpanElement
+        this.timerSpan = document.getElementById('timer') as HTMLSpanElement
         this.questionPara = document.getElementById('question') as HTMLParagraphElement
         this.answerInput = document.getElementById('answerInput') as HTMLInputElement
         this.answerButton = document.getElementById('answerButton') as HTMLButtonElement
-        this.resultPara = document.getElementById('result') as HTMLParagraphElement
+        this.feedbackArea = document.getElementById('feedback') as HTMLDivElement
         this.reloadButton = document.getElementById('reload') as HTMLButtonElement
     
-        if (!(this.infoPara && this.questionPara && this.resultPara && this.answerInput && this.answerButton && this.questionArea)) {
+        if (!(this.infoSpan && this.questionPara && this.feedbackArea && this.answerInput && this.answerButton && this.questionArea)) {
             throw new Error("HTML Element not found!")
         }
 
@@ -105,6 +111,10 @@ class MultiplicationTablesQuestionnaire
     }
 
     get currentQuestion() { return this.questions[this.currentIndex] }
+
+    updateTimerDisplay(value: number) {
+        this.timerSpan.textContent = (value / 1000).toFixed(1)
+    }
 
     nextQuestion() {
         if (this.currentIndex >= this.questions.length - 1) {
@@ -123,13 +133,15 @@ class MultiplicationTablesQuestionnaire
     }
 
     showQuestion() {
-        this.infoPara.textContent = `laskutehtävä ${this.currentIndex+1}/${this.questions.length}:`
+        this.infoSpan.textContent = `laskutehtävä ${this.currentIndex+1}/${this.questions.length}:`
         
         const {a, b} = this.currentQuestion
         this.questionPara.textContent = `${a} × ${b} =`
         this.questionPara.style.color = colors.default
         
         this.answerInput.value = ''
+        this.currentQuestionStartTime = Date.now();
+        this.timerHook = setInterval(() => this.updateTimerDisplay(this.totalAnsweringTime + (Date.now() - this.currentQuestionStartTime)), 100);
     }
 
     enableAnswerHandling() {
@@ -141,15 +153,18 @@ class MultiplicationTablesQuestionnaire
         if (isNaN(+this.answerInput.value)) return;
         const userAnswer = parseInt(this.answerInput.value)
         const {a, b} = this.currentQuestion
-        const correctAnswer = (userAnswer == a * b)
-        const feedback = correctAnswer ? 'OIKEIN!' : 'VÄÄRIN'
-        this.questionPara.textContent += ' ' + userAnswer.toString() + '  ' + feedback
-        this.questionPara.style.color = correctAnswer ? colors.correct : colors.incorrect
+        const isCorrect = (userAnswer == a * b)
+        this.questionPara.textContent += ' ' + userAnswer.toString() + '  ' + ((isCorrect) ? 'OIKEIN!' : 'VÄÄRIN')
+        this.questionPara.style.color = isCorrect ? colors.correct : colors.incorrect
         this.answerCount++
+        clearTimeout(this.timerHook);
+        this.totalAnsweringTime += (Date.now() - this.currentQuestionStartTime)
+        this.updateTimerDisplay(this.totalAnsweringTime);
+
         
         setTimeout(() => {
-            if (correctAnswer) {
-                this.nextQuestion()                 
+            if (isCorrect) {
+                this.nextQuestion()
             } else {
                 this.failed.add(this.currentQuestion);
                 this.showQuestion()
@@ -158,7 +173,19 @@ class MultiplicationTablesQuestionnaire
     }
 
     finish() {
-        this.resultPara.textContent = `Sait oikein ${this.questions.length - this.failed.size}/${this.questions.length}. ${(this.failed.size == 0) ? 'Hienoa!': ''}`
+        const lines = [
+            `Sait oikein ${this.questions.length - this.failed.size}/${this.questions.length}. ${(this.failed.size == 0) ? 'Hienoa!': ''}`,
+            `Aikaa kului keskimäärin ${(this.totalAnsweringTime / this.selectedTables.length / 1000).toFixed(1)} sekuntia per kertotaulu`
+        ]
+        if (this.failed.size > 0) {
+            lines.push('Näitä laskuja sinun kannattaa vielä harjoitella:')
+            lines.push(...Array.from(this.failed.values()).map(calc => `${calc.a} × ${calc.b} = ${calc.a * calc.b}`))
+        }
+        lines.forEach(line => {
+            const elem = document.createElement('p')
+            elem.textContent = line
+            this.feedbackArea.appendChild(elem)
+        })
         this.reloadButton.style.display = 'block';
         this.reloadButton.onclick = () => {
             location.reload();

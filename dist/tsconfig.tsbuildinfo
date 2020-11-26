@@ -154,8 +154,8 @@
         "signature": "0c9ea8c2028047f39a3f66752682604f543c08be8806258c3d95c93e75a43255"
       },
       "../src/main.ts": {
-        "version": "839c5dd9a6547b145fa7cf533abac0873abeaff450dbca55f71dbd0044986552",
-        "signature": "c4f950c35dcc15e001c05e80964e4dce4c33c7059f3ca2e41967d645a19958f1"
+        "version": "8bbef2a04f07335795fe690d14ef3f8ba76326ec5978ee77b0791bcc01003a6f",
+        "signature": "3c91067722cd01e127de6c131f33f62aadb00f8f64badc41e5664032c3899151"
       }
     },
     "options": {
