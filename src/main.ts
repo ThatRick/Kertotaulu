@@ -140,6 +140,7 @@ class MultiplicationTablesQuestionnaire
         this.questionPara.style.color = colors.default
         
         this.answerInput.value = ''
+        this.answerInput.focus()
         this.currentQuestionStartTime = Date.now();
         this.timerHook = setInterval(() => this.updateTimerDisplay(this.totalAnsweringTime + (Date.now() - this.currentQuestionStartTime)), 100);
     }
