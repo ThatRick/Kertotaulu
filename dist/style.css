@@ -66,3 +66,21 @@ body {
     cursor: pointer;
     display: none
 }
+
+#toggleButtons .toggle {
+  background: #EEE; /* unselected */
+}
+#toggleButtons .toggle.is-selected {
+  background: #AAF; /* selected */
+}
+
+#startButton:disabled {
+  background: #DDD; /* disabled */
+}
+#startButton:not(:disabled) {
+  background: #2A2; /* enabled */
+}
+
+#question.is-default   { color: #000; }
+#question.is-correct   { color: #080; }
+#question.is-incorrect { color: #800; }
