@@ -165,7 +165,9 @@ class MultiplicationTablesApp {
     const right = this.flip ? a : b;
 
     const done = this.baseTotal - this.remaining.size;
-    this.ui.infoSpan.textContent = `laskutehtävä ${done + 1}/${this.baseTotal}:`;
+    this.ui.infoSpan.textContent =
+      `laskutehtävä ${this.index + 1}/${this.questions.length} (valmiina ${done}/${this.baseTotal}):`;
+
 
     this.ui.questionPara.textContent = `${left} × ${right} =`;
     this.setQuestionState("default");
