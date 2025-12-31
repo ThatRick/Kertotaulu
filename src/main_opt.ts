@@ -1,20 +1,10 @@
-const colors = {
-  disabled:   "#DDD",
-  enabled:    "#2A2",
-  unselected: "#EEE",
-  selected:   "#AAF",
-  correct:    "#080",
-  incorrect:  "#800",
-  default:    "#000",
-} as const;
-
 const availableTables = [2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
-
 type Mul = Readonly<{ a: number; b: number }>;
+type AppState = "SETUP" | "ASKING" | "FEEDBACK" | "FINISHED";
 
 const byId = <T extends HTMLElement>(id: string): T => {
   const el = document.getElementById(id);
-  if (!el) throw new Error(`Missing element #${id}`);
+  if (!el) throw new Error(`HTML element not found: #${id}`);
   return el as T;
 };
 
@@ -29,107 +19,120 @@ const shuffle = <T>(arr: T[]) => {
 const keyOf = ({ a, b }: Mul) => `${a}×${b}`;
 
 window.onload = () => {
-  const setupArea         = byId<HTMLDivElement>("setupArea");
-  const toggleButtonsArea = byId<HTMLDivElement>("toggleButtons");
-  const startButton       = byId<HTMLButtonElement>("startButton");
+  const ui = {
+    setupArea   : byId<HTMLDivElement>("setupArea"),
+    togglesArea : byId<HTMLDivElement>("toggleButtons"),
+    startButton : byId<HTMLButtonElement>("startButton"),
+
+    questionArea: byId<HTMLDivElement>("questionArea"),
+    infoSpan    : byId<HTMLSpanElement>("info"),
+    timerSpan   : byId<HTMLSpanElement>("timer"),
+    questionPara: byId<HTMLParagraphElement>("question"),
+    answerInput : byId<HTMLInputElement>("answerInput"),
+    answerButton: byId<HTMLButtonElement>("answerButton"),
+    feedbackArea: byId<HTMLDivElement>("feedback"),
+    reloadButton: byId<HTMLButtonElement>("reload"),
+  } as const;
 
   const selectedTables = new Set<number>();
 
-  // Render toggle buttons as <button> so disabled/keyboard is sane
-  toggleButtonsArea.innerHTML = availableTables
-    .map(n => `<button type="button" data-n="${n}">${n}</button>`)
+  // Render toggle buttons (keep original layout/CSS)
+  ui.togglesArea.innerHTML = availableTables
+    .map(n => `<div class="toggle" data-n="${n}">${n}</div>`)
     .join("");
 
-  // Apply initial style (matches old UI)
-  Array.from(toggleButtonsArea.children).forEach(ch => {
-    const el = ch as HTMLElement;
-    el.style.backgroundColor = colors.unselected;
+  ui.startButton.disabled = true;
+
+  // Toggle selection via event delegation
+  ui.togglesArea.addEventListener("click", (ev) => {
+    const el = (ev.target as HTMLElement).closest<HTMLElement>(".toggle[data-n]");
+    if (!el || !ui.togglesArea.contains(el)) return;
+
+    const n = Number(el.dataset.n);
+    const on = !el.classList.contains("is-selected");
+
+    el.classList.toggle("is-selected", on);
+    on ? selectedTables.add(n) : selectedTables.delete(n);
+
+    ui.startButton.disabled = selectedTables.size === 0;
   });
 
-  const setStartEnabled = (enabled: boolean) => {
-    startButton.disabled = !enabled;
-    startButton.style.backgroundColor = enabled ? colors.enabled : colors.disabled;
-  };
-
-  setStartEnabled(false);
-
-  // Event delegation + closest()
-  toggleButtonsArea.addEventListener("click", (ev) => {
-    const btn = (ev.target as HTMLElement).closest<HTMLElement>("[data-n]");
-    if (!btn || !toggleButtonsArea.contains(btn)) return;
-
-    const n = Number(btn.getAttribute("data-n"));
-    const toggled = !btn.classList.contains("is-on");
-
-    btn.classList.toggle("is-on", toggled);
-    btn.style.backgroundColor = toggled ? colors.selected : colors.unselected;
-
-    toggled ? selectedTables.add(n) : selectedTables.delete(n);
-    setStartEnabled(selectedTables.size > 0);
+  ui.startButton.addEventListener("click", () => {
+    if (!selectedTables.size) return;
+    ui.startButton.disabled = true;
+    ui.setupArea.style.display = "none";
+    new MultiplicationTablesApp(ui, [...selectedTables].sort((a, b) => a - b));
   });
-
-  startButton.onclick = () => {
-    if (selectedTables.size === 0) return;
-
-    setStartEnabled(false);
-    setupArea.style.display = "none";
-
-    new MultiplicationTablesQuestionnaire(
-      Array.from(selectedTables).sort((a, b) => a - b)
-    );
-  };
 };
 
-class MultiplicationTablesQuestionnaire {
-  private ui = {
-    questionArea : byId<HTMLDivElement>("questionArea"),
-    infoSpan     : byId<HTMLSpanElement>("info"),
-    timerSpan    : byId<HTMLSpanElement>("timer"),
-    questionPara : byId<HTMLParagraphElement>("question"),
-    answerInput  : byId<HTMLInputElement>("answerInput"),
-    answerButton : byId<HTMLButtonElement>("answerButton"),
-    feedbackArea : byId<HTMLDivElement>("feedback"),
-    reloadButton : byId<HTMLButtonElement>("reload"),
-  } as const;
+class MultiplicationTablesApp {
+  private state: AppState = "SETUP";
 
   private questions: Mul[] = [];
   private index = 0;
 
   private failed = new Map<string, Mul>();
-
   private attempts = 0;
-  private totalMs = 0;
 
+  private totalMs = 0;
   private startMs = 0;
   private intervalId: number | null = null;
 
   private locked = false;
   private flip = false;
 
-  constructor(private selectedTables: number[]) {
-    // Data: a always comes from selected tables, b is 2..10
-    for (const a of selectedTables) {
-      for (const b of availableTables) {
-        this.questions.push({ a, b });
-      }
-    }
-
+  constructor(
+    private ui: {
+      questionArea: HTMLDivElement;
+      infoSpan: HTMLSpanElement;
+      timerSpan: HTMLSpanElement;
+      questionPara: HTMLParagraphElement;
+      answerInput: HTMLInputElement;
+      answerButton: HTMLButtonElement;
+      feedbackArea: HTMLDivElement;
+      reloadButton: HTMLButtonElement;
+    },
+    private selectedTables: number[]
+  ) {
+    this.questions = this.buildQuestions(selectedTables);
     shuffle(this.questions);
 
-    // Show UI area
     this.ui.questionArea.style.display = "block";
     this.ui.reloadButton.style.display = "none";
 
-    // Bind handlers
-    this.ui.answerButton.onclick = () => this.handleAnswer();
-    this.ui.answerInput.onkeydown = (ev) => {
-      if (ev.key === "Enter") this.handleAnswer();
-    };
+    this.ui.answerButton.onclick = () => this.submitAnswer();
+    this.ui.answerInput.onkeydown = (e) => (e.key === "Enter") && this.submitAnswer();
 
-    this.showQuestion();
+    this.ui.reloadButton.onclick = () => (location.reload(), false as any);
+
+    this.transition("ASKING");
+  }
+
+  private buildQuestions(selected: number[]) {
+    const qs: Mul[] = [];
+    for (const a of selected) {
+      for (const b of availableTables) {
+        qs.push({ a, b }); // a = chosen table, b = 2..10
+      }
+    }
+    return qs;
   }
 
   private get current() { return this.questions[this.index]; }
+
+  private transition(next: AppState, payload?: { ok?: boolean; user?: number }) {
+    this.state = next;
+
+    if (next === "ASKING") return this.showQuestion();
+    if (next === "FEEDBACK") return this.showFeedback(payload?.ok ?? false, payload?.user ?? 0);
+    if (next === "FINISHED") return this.finish();
+  }
+
+  private setQuestionState(kind: "default" | "correct" | "incorrect") {
+    const q = this.ui.questionPara;
+    q.classList.remove("is-default", "is-correct", "is-incorrect");
+    q.classList.add(`is-${kind}`);
+  }
 
   private setTimer(ms: number) {
     this.ui.timerSpan.textContent = (ms / 1000).toFixed(0);
@@ -143,7 +146,6 @@ class MultiplicationTablesQuestionnaire {
   private startTimer() {
     this.stopTimer();
     this.startMs = Date.now();
-
     this.intervalId = window.setInterval(() => {
       this.setTimer(this.totalMs + (Date.now() - this.startMs));
     }, 200);
@@ -159,21 +161,58 @@ class MultiplicationTablesQuestionnaire {
 
     this.ui.infoSpan.textContent = `laskutehtävä ${this.index + 1}/${this.questions.length}:`;
     this.ui.questionPara.textContent = `${left} × ${right} =`;
-    this.ui.questionPara.style.color = colors.default;
+    this.setQuestionState("default");
 
     this.ui.answerInput.value = "";
-    this.ui.answerInput.focus();
+    this.ui.answerInput.disabled = false;
+    this.ui.answerButton.disabled = false;
 
+    this.ui.answerInput.focus();
     this.startTimer();
   }
 
+  private submitAnswer() {
+    if (this.state !== "ASKING" || this.locked) return;
+
+    const raw = this.ui.answerInput.value.trim();
+    if (!raw || Number.isNaN(Number(raw))) return;
+
+    this.locked = true;
+    this.attempts++;
+
+    const user = Number(raw);
+    const { a, b } = this.current;
+    const ok = user === a * b;
+
+    this.stopTimer();
+    this.totalMs += (Date.now() - this.startMs);
+    this.setTimer(this.totalMs);
+
+    if (!ok) this.failed.set(keyOf(this.current), this.current);
+
+    this.ui.answerInput.disabled = true;
+    this.ui.answerButton.disabled = true;
+
+    this.transition("FEEDBACK", { ok, user });
+  }
+
+  private showFeedback(ok: boolean, user: number) {
+    const { a, b } = this.current;
+    const left  = this.flip ? b : a;
+    const right = this.flip ? a : b;
+
+    this.ui.questionPara.textContent =
+      `${left} × ${right} = ${user}  ${ok ? "OIKEIN!" : "VÄÄRIN"}`;
+    this.setQuestionState(ok ? "correct" : "incorrect");
+
+    window.setTimeout(() => {
+      ok ? this.nextQuestion() : this.requeueCurrent();
+      this.transition(this.isDone() ? "FINISHED" : "ASKING");
+    }, 1200);
+  }
+
   private nextQuestion() {
-    if (this.index >= this.questions.length - 1) {
-      this.finish();
-    } else {
-      this.index++;
-      this.showQuestion();
-    }
+    if (this.index < this.questions.length - 1) this.index++;
   }
 
   private requeueCurrent() {
@@ -184,43 +223,12 @@ class MultiplicationTablesQuestionnaire {
 
     const [q] = this.questions.splice(from, 1);
     this.questions.splice(to, 0, q);
-    // keep index same; next question is now the one that slid into this slot
+    // index stays; a new question slides into current slot
   }
 
-  private handleAnswer() {
-    if (this.locked) return;
-
-    const raw = this.ui.answerInput.value.trim();
-    if (raw === "" || Number.isNaN(Number(raw))) return;
-
-    this.locked = true;
-    this.attempts++;
-
-    const user = Number(raw);
-    const { a, b } = this.current;
-
-    const ok = user === a * b;
-
-    this.stopTimer();
-    this.totalMs += (Date.now() - this.startMs);
-    this.setTimer(this.totalMs);
-
-    const left  = this.flip ? b : a;
-    const right = this.flip ? a : b;
-
-    this.ui.questionPara.textContent = `${left} × ${right} = ${user}  ${ok ? "OIKEIN!" : "VÄÄRIN"}`;
-    this.ui.questionPara.style.color = ok ? colors.correct : colors.incorrect;
-
-    if (!ok) this.failed.set(keyOf(this.current), this.current);
-
-    window.setTimeout(() => {
-      if (ok) {
-        this.nextQuestion();
-      } else {
-        this.requeueCurrent();
-        this.showQuestion();
-      }
-    }, 900);
+  private isDone() {
+    // Done when we've reached last slot and answered correctly (nextQuestion would not advance)
+    return this.index >= this.questions.length - 1;
   }
 
   private finish() {
@@ -236,35 +244,19 @@ class MultiplicationTablesQuestionnaire {
 
     const lines: string[] = [
       `Sait oikein ${correct}/${total}. ${wrong === 0 ? "Hienoa!" : ""}`.trim(),
-      `Aikaa keskimäärin ${avgPerQuestion.toFixed(1)} s / tehtävä`,
-      `Aikaa keskimäärin ${avgPerAttempt.toFixed(1)} s / yritys`,
-      `Aikaa keskimäärin ${avgPerTable.toFixed(1)} s / valittu kertotaulu`,
+      `Aikaa ${avgPerQuestion.toFixed(1)} s / tehtävä`,
+      `Aikaa ${avgPerAttempt.toFixed(1)} s / yritys`,
+      `Aikaa ${avgPerTable.toFixed(1)} s / valittu kertotaulu`,
     ];
 
-    if (wrong > 0) {
+    if (wrong) {
       lines.push("Näitä laskuja sinun kannattaa vielä harjoitella:");
-
-      const failedSorted = [...this.failed.values()]
-        .sort((x, y) => keyOf(x).localeCompare(keyOf(y)));
-
-      for (const calc of failedSorted) {
+      for (const calc of [...this.failed.values()].sort((x, y) => keyOf(x).localeCompare(keyOf(y)))) {
         lines.push(`${calc.a} × ${calc.b} = ${calc.a * calc.b}`);
       }
     }
 
-    // render
-    this.ui.feedbackArea.innerHTML = "";
-    for (const line of lines) {
-      const p = document.createElement("p");
-      p.textContent = line;
-      this.ui.feedbackArea.appendChild(p);
-    }
-
+    this.ui.feedbackArea.innerHTML = lines.map(t => `<p>${t}</p>`).join("");
     this.ui.reloadButton.style.display = "block";
-    this.ui.reloadButton.onclick = () => (location.reload(), false as any);
-
-    // lock inputs
-    this.ui.answerInput.disabled = true;
-    this.ui.answerButton.disabled = true;
   }
 }
